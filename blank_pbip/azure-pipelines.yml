@@ -1,0 +1,39 @@
+trigger:
+- main  # Trigger pipeline on pushes to the main branch
+
+pool:
+ vmImage: ubuntu-latest  # Use a pre-configured Microsoft-hosted agent
+
+
+stages:
+  - stage: prettyprint
+    displayName: "Checkout the files from the azure repo and pretty print json files"
+    jobs:
+      - job: prettyprint
+        steps:
+        - checkout: self
+          persistCredentials: true
+        - script: |
+            sudo apt-get update    # install dependencies
+            sudo apt-get install jq
+
+            git switch -c main # switch back to the main branch
+
+
+            git_message=$(git log -1 --pretty=%B)   # get the last git message
+
+            echo "$git_message"
+
+            git update-index --chmod=+x ./pretty_print.sh                           # make files writeable and executable using cmod
+            
+            sudo bash ./pretty_print.sh # modify json file to be prettier using jq tool
+
+
+            git config --local user.email "email"
+            git config --local user.name "Automated Pretty Printer"
+
+
+            git add .                             # commit changes using previous commit message
+            git commit -m "$git_message"
+            git push origin HEAD:main
+          displayName: "pretty print"  
